@@ -13,6 +13,13 @@ class Gameroom(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    @staticmethod
+    def _get_hours_for_day(adjusted_hours: dict, day: datetime.date, default: str):
+        value = adjusted_hours.get(day)
+        if value is None:
+            value = adjusted_hours.get(day.strftime("%Y-%m-%d"))
+        return default if value is None else value
+
     gameroom = discord.SlashCommandGroup(
         "gameroom", "Game Room and Nexus Gaming Lounge commands"
     )
@@ -22,7 +29,7 @@ class Gameroom(commands.Cog):
     )
     async def hours(self, ctx):
         default_hours = config.config["gameroom"]["default_hours"]
-        adjusted_hours = config.config["gameroom"]["adjusted_hours"]
+        adjusted_hours = config.config["gameroom"].get("adjusted_hours", {})
 
         today = datetime.date.today()
         start = today - datetime.timedelta(days=today.weekday())
@@ -40,9 +47,7 @@ class Gameroom(commands.Cog):
         )
 
         for i, day in enumerate(week):
-            value = adjusted_hours.get(
-                day, default_hours[i]
-            )  # adjusted hours if available, otherwise default hours
+            value = self._get_hours_for_day(adjusted_hours, day, default_hours[i])
             embed.add_field(name=day.strftime("%A"), value=value, inline=False)
 
         embed.set_image(
